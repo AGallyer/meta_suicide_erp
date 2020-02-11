@@ -2,6 +2,7 @@ library(tidyverse)
 library(metafor)
 library(readxl)
 library(compute.es)
+library(PRISMAstatement)
 #Import data
 data <- read_excel("meta_spreadsheet.xlsx", sheet = "effect_size_coding")
 meta_data <- data %>% 
@@ -108,7 +109,7 @@ par(cex=1.25, font=2)
 
 ### add column headings to the plot
 text(-4.75, 48, "Author(s) (Year) Effect ID",  pos=4)
-text(7.0, 48, expression(italic("g ") * "[95% CI]"), pos=2)
+text(6.75, 48, expression(italic("g ") * "[95% CI]"), pos=2)
 dev.off()
 
 #Funnel Plot attempt
@@ -231,3 +232,15 @@ risk.N.mod <- robust(risk_estimate, cluster = risk_data$Study_ID,
                            adjust = TRUE)
 
 summary(risk.N.mod) #Did not find evidence of N having impact on effect size
+
+#PRISMA statement
+prisma(found = 270,
+       found_other = 4,
+       no_dupes = 199, 
+       screened = 199, 
+       screen_exclusions = 149, 
+       full_text = 50,
+       full_text_exclusions = 24, 
+       qualitative = 26, 
+       quantitative = 23,
+       width = 800, height = 800)
