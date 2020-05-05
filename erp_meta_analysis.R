@@ -25,8 +25,7 @@ meta_data <- data %>%
 meta_data$scoring <- recode_factor(as.factor(meta_data$scoring), raw = 0, 
                                    difference = 1, slope = 1)
 meta_data$type <- recode_factor(as.factor(meta_data$type), LDAEP = 0, LPP = 1, 
-                                RewP = 2, P3 = 3, PSW = 4,
-                                N1 = 5, CNV = 5, N2 = 5, P2 = 5, PINV = 5, SPN = 5)
+                                RewP = 2, P3 = 3, N1 = 4, CNV = 4, N2 = 4, P2 = 4, PINV = 4, SPN = 4)
 #Subset data
 ideation_data <- meta_data %>% 
   filter(Description == "ideation" & abs_g < 2.9)#One outlier effect size 
@@ -186,7 +185,7 @@ summary(attempt.scoring.mod)# Not significant, scoring does not seem to account 
 attempt_estimate <- rma.mv(yi = abs_g ~ mean_age, 
                             V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
                             data = attempt_data,
-                            method = "REML")
+                            method = "REML", verbose = TRUE, control=list(optimizer="optim", optmethod="Nelder-Mead")) #Didn't converge first time, switched optimizer and opt method
 
 attempt.age.mod <- robust(attempt_estimate, cluster = attempt_data$Study_ID, adjust = TRUE)
 
@@ -258,7 +257,7 @@ risk_estimate <- rma.mv(yi = abs_g ~ type,
 risk.type.mod <- robust(risk_estimate, cluster = risk_data$Study_ID,
                       adjust = TRUE)
 
-summary(risk.type.mod)#Significant, but no individual estimates different form the LDAEP
+summary(risk.type.mod)#Not significant
 
 #ERP scoring method moderation risk
 risk_estimate <- rma.mv(yi = abs_g ~ scoring, 
@@ -381,7 +380,7 @@ meta_sample <- meta_data %>%
       group_by(Description, Study_ID) %>% 
       summarise("mean_n" = mean(N))
 
-fig.9 <- ggplot(meta_sample, aes(x = fct_reorder(Description, mean_n, fun = median, .desc =TRUE), y = mean_n, fill = Description)) + 
+fig.9 <- ggplot(meta_sample, aes(x = fct_reorder(Description, mean_n, .fun = median, .desc =TRUE), y = mean_n, fill = Description)) + 
       geom_boxplot() + theme_classic() + geom_jitter(position=position_jitter(0.2)) + 
       labs(x = "Meta-analysis STB Group", y = "Study N") + theme(legend.position="none", text = element_text(size = 12)) + 
       scale_fill_brewer(palette = "Dark2") + scale_x_discrete(labels = c('Suicidal Ideation','Suicide Attempt','Suicidality'))

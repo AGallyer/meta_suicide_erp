@@ -6,7 +6,7 @@ library(irr)
 library(psych)
 
 # import data -------------------------------------------------------------
-austin_data <- read_excel("meta_spreadsheet.xlsx", sheet = "effect_size_coding")
+austin_data <- read_excel("meta_spreadsheet_austin.xlsx", sheet = "effect_size_coding")
 
 austin_data <- select(austin_data, effect_id, design, Description, mean_age, n_suicide, n_control, scoring, type, N)
 
@@ -40,7 +40,7 @@ agree(design_data) #99.5%
 
 agree(description_data)# 97.9%
 
-agree(scoring_data)# 85.1%
+agree(scoring_data)# 100%
 
 agree(type_data)# 87.5%
 
@@ -51,7 +51,7 @@ kappa2(design_data)# 0.989
 
 kappa2(description_data)# 0.965
 
-kappa2(scoring_data)# 0.59
+kappa2(scoring_data)# 1.0
 
 kappa2(type_data)# 0.833
 
@@ -66,10 +66,31 @@ cor(n_control_data, use = "pairwise.complete.obs")# 1
 cor(N_data, use = "pairwise.complete.obs")# .99
 
 # ICC for continuous data -------------------------------------------------
-ICC(age_data) #1.00
+ICC(age_data)# 1.00
 
 ICC(n_suicide_data)# 1.00
 
 ICC(n_control_data)# 1.00
 
 ICC(N_data)# 0.99
+
+
+# Label discrepancies for discussion --------------------------------------
+different <- (design_data$design == design_data$sean_design)
+
+design_data$different <- different
+
+different <- (description_data$Description == description_data$sean_Description)
+
+description_data$different <- different
+
+different <- (scoring_data$scoring == scoring_data$sean_scoring)
+
+scoring_data$different <- different
+
+different <- (type_data$type == type_data$sean_type)
+
+type_data$different <- different
+
+different <- (N_data$N == N_data$sean_N)
+N_data$different <- different
