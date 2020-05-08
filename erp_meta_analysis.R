@@ -144,8 +144,8 @@ P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
 100 * sum(robust_attempt$sigma2) / (sum(robust_attempt$sigma2) + (robust_attempt$k-robust_attempt$p)/sum(diag(P)))
 
 
-tiff(file = "attempt_forest.tiff", width = 10, height = 12, units = "in", 
-     res = 800, compression = "lzw")
+png(file = "attempt_forest.png", width = 10, height = 12, units = "in", 
+     res = 300)
 
 forest(robust_attempt, xlab = expression("Hedges' " * italic("g")), 
        mlab = "Robust RE Model")
