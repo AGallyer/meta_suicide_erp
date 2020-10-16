@@ -25,9 +25,10 @@ meta_data <- data %>%
 meta_data$scoring <- recode_factor(as.factor(meta_data$scoring), raw = 0, 
                                    difference = 1, slope = 1)
 meta_data$type <- recode_factor(as.factor(meta_data$type), LDAEP = 0, LPP = 1, 
-                                RewP = 2, P3 = 3, N1 = 4, CNV = 4, N2 = 4, P2 = 4, PINV = 4, SPN = 4)
-#Subset data
-ideation_data <- meta_data %>% 
+                                RewP = 2, P3 = 3, CNV = 4, N2 = 5, P2 = 6, N1 = 7, 
+                                PINV = 7, SPN = 7)
+#Subset data for overall analyses
+rewp_ideation_data <- meta_data %>% 
   filter(Description == "ideation" & abs_g < 2.9)#One outlier effect size 
 
 attempt_data <- meta_data %>% 
@@ -35,6 +36,9 @@ attempt_data <- meta_data %>%
 
 risk_data <- meta_data %>% 
   filter(Description == "risk")
+
+sa_si_data <- meta_data %>% 
+  filter(suicide_group == 'SA' & control_group == 'SI')
 
 #Ideation meta-analysis##############
 ideation_estimate <- rma.mv(yi = abs_g ~ 1, 
@@ -291,6 +295,78 @@ risk.N.mod <- robust(risk_estimate, cluster = risk_data$Study_ID,
                            adjust = TRUE)
 
 summary(risk.N.mod) #Did not find evidence of N having impact on effect size
+
+#SA vs. SI meta-analysis############
+sa_si_estimate <- rma.mv(yi = abs_g ~ 1, 
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                        data = sa_si_data,
+                        method = "REML", 
+                        slab = paste(paste(paste(Authors, Year, sep=", ("), ")", sep = ""), effect_id, sep = " "))
+
+robust_sa_si <- robust(sa_si_estimate, cluster = sa_si_data$Study_ID,
+                      adjust = TRUE)
+# Calculate I^2
+W <- diag(1/sa_si_data$var_g)
+X <- model.matrix(robust_sa_si)
+P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+100 * sum(robust_sa_si$sigma2) / (sum(robust_sa_si$sigma2) + (robust_sa_si$k-robust_sa_si$p)/sum(diag(P)))
+
+# SA vs. SI forest plot
+forest(robust_sa_si, xlab = expression("Hedges' " * italic("g")), 
+       mlab = "Robust RE Model")
+par(cex=1.25, font=2)
+
+### add column headings to the plot
+text(-5.00, 36, "Author(s) (Year) Effect ID",  pos=4)
+text(8.35, 36, expression(italic("g ") * "[95% CI]"), pos=2)
+
+# SA vs. SI funnel plot
+funnel(robust_sa_si, xlab = expression("Hedges' " * italic("g")))
+
+#ERP type moderation risk
+sasi_estimate <- rma.mv(yi = abs_g ~ type, 
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                        data = sa_si_data,
+                        method = "REML")
+
+sasi.type.mod <- robust(sasi_estimate, cluster = sa_si_data$Study_ID,
+                        adjust = TRUE)
+
+summary(risk.type.mod)#Not significant
+
+#ERP scoring method moderation risk
+risk_estimate <- rma.mv(yi = abs_g ~ scoring, 
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                        data = risk_data,
+                        method = "REML")
+
+risk.scoring.mod <- robust(risk_estimate, cluster = risk_data$Study_ID,
+                           adjust = TRUE)
+
+summary(risk.scoring.mod) #No significant differences
+#Sample age moderation risk
+risk_estimate <- rma.mv(yi = abs_g ~ mean_age, 
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                        data = risk_data,
+                        method = "REML", control=list(iter.max=10000, rel.tol=1e-8))
+
+risk.age.mod <- robust(risk_estimate, cluster = risk_data$Study_ID, adjust = TRUE)
+
+summary(risk.age.mod)#No evidence that age matters for strength of effect, though it is close
+#Sample size moderation risk
+risk_data <- risk_data %>% 
+  mutate("cent_n" = N - min(N))
+
+risk_estimate <- rma.mv(yi = abs_g ~ cent_n, 
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                        data = risk_data,
+                        method = "REML")
+
+risk.N.mod <- robust(risk_estimate, cluster = risk_data$Study_ID,
+                     adjust = TRUE)
+
+summary(risk.N.mod) #Did not find evidence of N having impact on effect size
+
 
 # Sensitivity Analyses############
 #Ideation sensitivity analyses
