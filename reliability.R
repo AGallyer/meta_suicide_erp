@@ -6,11 +6,11 @@ library(irr)
 library(psych)
 
 # import data -------------------------------------------------------------
-austin_data <- read_excel("meta_spreadsheet_austin.xlsx", sheet = "effect_size_coding")
+austin_data <- read_excel("meta_spreadsheet_firstauthor.xlsx", sheet = "effect_size_coding")
 
 austin_data <- select(austin_data, effect_id, design, Description, mean_age, n_suicide, n_control, scoring, type, N)
 
-sean_data <- read_excel("meta_spreadsheet_sean.xlsx", sheet = "effect_size_coding")
+sean_data <- read_excel("meta_spreadsheet_secondcoder.xlsx", sheet = "effect_size_coding")
 
 sean_data <- select(sean_data, effect_id, sean_design, sean_Description, sean_mean_age, 
                     sean_n_suicide, sean_n_control, sean_scoring, sean_type, sean_N)
@@ -38,30 +38,30 @@ N_data <- select(full_data, N, sean_N)
 
 agree(design_data) #99.5%
 
-agree(description_data)# 97.9%
+agree(description_data)# 96.2%
 
-agree(scoring_data)# 100%
+agree(scoring_data)# 98%
 
-agree(type_data)# 87.5%
+agree(type_data)# 88.0%
 
 
 # Kappa for categorical variables -----------------------------------------
 
-kappa2(design_data)# 0.989
+kappa2(design_data)# 0.990
 
-kappa2(description_data)# 0.965
+kappa2(description_data)# 0.935
 
-kappa2(scoring_data)# 1.0
+kappa2(scoring_data)# 0.943
 
-kappa2(type_data)# 0.833
+kappa2(type_data)# 0.843
 
 
 # Intercoder correlation for continuous -----------------------------------
 cor(age_data, use = "pairwise.complete.obs")# .99
 
-cor(n_suicide_data, use = "pairwise.complete.obs")# 1
+cor(n_suicide_data, use = "pairwise.complete.obs")# 1.0
 
-cor(n_control_data, use = "pairwise.complete.obs")# 1
+cor(n_control_data, use = "pairwise.complete.obs")# 1.0
 
 cor(N_data, use = "pairwise.complete.obs")# .99
 
