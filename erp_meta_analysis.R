@@ -3,11 +3,8 @@ library(metafor)
 library(readxl)
 library(compute.es)
 library(PRISMAstatement)
-library(multcomp)
-library(metameta)
 library(metaviz)
 library(ggthemes)
-library(weightr)
 library(patchwork)
 # Function
 s_power <- function(se, true_effect, sig_level) {
@@ -39,6 +36,238 @@ meta_data <- data %>%
 meta_data$scoring <- recode_factor(as.factor(meta_data$scoring), raw = 0, 
                                    difference = 1, slope = 1)
 
+
+#Separate ERP Studies ---------------------------------------------------
+# Create separate data for each type and outcome
+# LDAEP
+ldaep_si_data <- meta_data %>%
+  filter(type == "LDAEP" & Description == "ideation")# 3 effect sizes 2 studies. Meta analyze
+
+ldaep_sa_data <- meta_data %>%
+  filter(type == "LDAEP" & Description == "attempt")# 12 effect sizes, 5 studies. Meta analyze
+
+ldaep_risk_data <- meta_data %>%
+  filter(type == "LDAEP" & Description == "risk")# 3 effect sizes, 3 studies. Meta analyze
+
+## Analyses
+### LDAEP SI Analysis
+ldaep_estimate <- rma.mv(yi = g ~ 1,
+                         V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                         data = ldaep_si_data,
+                         method = "REML",  
+                         slab = paste(paste(paste(Authors, Year, sep=", ("), ")", 
+                                                              sep = ""), effect_id, sep = " "))
+
+ldaep_robust <- robust(ldaep_estimate, cluster = ldaep_si_data$Study_ID,
+                       adjust = TRUE)
+summary(ldaep_robust)# g = - 0.2720, p = 0.6803
+
+#Compute I^2 for this model
+W <- diag(1/ldaep_si_data$var_g)
+X <- model.matrix(ldaep_robust)
+P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+100 * sum(ldaep_robust$sigma2) / (sum(ldaep_robust$sigma2) + (ldaep_robust$k-ldaep_robust$p)/sum(diag(P)))
+
+#Create forest plot
+fig2a <- viz_forest(ldaep_robust, variant = "classic", study_labels = ldaep_estimate[["slab"]], 
+                    col = "#1e89c6", xlab = expression("Hedges' " * italic("g")), 
+           text_size = 5)
+
+### LDAEP SA Analysis
+ldaep_estimate <- rma.mv(yi = g ~ 1,
+                         V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                         data = ldaep_sa_data,
+                         method = "REML")
+
+ldaep_robust <- robust(ldaep_estimate, cluster = ldaep_sa_data$Study_ID,
+                       adjust = TRUE)
+summary(ldaep_robust)# g = 0.021, p = 0.946
+
+W <- diag(1/ldaep_sa_data$var_g)
+X <- model.matrix(ldaep_robust)
+P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+100 * sum(ldaep_robust$sigma2) / (sum(ldaep_robust$sigma2) + (ldaep_robust$k-ldaep_robust$p)/sum(diag(P)))
+
+#### LDAEP Risk Publication Bias
+ldaep_weights <- weights(ldaep_robust)
+
+ldaep_sa_data$weights <- ldaep_weights
+
+ldaep_sa_data <- mutate(ldaep_sa_data, "sqrt_weights" = sqrt(weights))
+
+ldaep_estimate <- rma.mv(yi = abs_g ~ sqrt_weights, 
+                         V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID), 
+                         data = ldaep_sa_data,
+                         method = "REML")
+
+ldaep_eggers <- robust(ldaep_estimate, cluster = ldaep_sa_data$Study_ID, 
+                       adjust = TRUE)
+
+summary(ldaep_eggers)# significant small sample bias
+
+
+### LDAEP Risk Analysis
+ldaep_estimate <- rma.mv(yi = g ~ 1,
+                         V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                         data = ldaep_risk_data,
+                         method = "REML")
+
+ldaep_robust <- robust(ldaep_estimate, cluster = ldaep_risk_data$Study_ID,
+                       adjust = TRUE)
+summary(ldaep_robust)# g = 0.175, p = 0.552
+
+W <- diag(1/ldaep_risk_data$var_g)
+X <- model.matrix(ldaep_robust)
+P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+100 * sum(ldaep_robust$sigma2) / (sum(ldaep_robust$sigma2) + (ldaep_robust$k-ldaep_robust$p)/sum(diag(P)))
+
+# LPP
+lpp_si_data <- meta_data %>%
+  filter(type == "LPP" & Description == "ideation")# 34 effect sizes, 3 studies. Meta analyze
+
+lpp_sa_data <- meta_data %>%
+  filter(type == "LPP" & Description == "attempt")# 1 study, 3 effect sizes. Meta analyze
+
+lpp_risk_data <- meta_data %>%
+  filter(type == "LPP" & Description == "risk")# 9 effect sizes, 2 studies. Meta analyze
+
+## Analyses
+###LPP SI Analysis
+lpp_estimate <- rma.mv(yi = g ~ 1,
+                       V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                       data = lpp_si_data,
+                       method = "REML")
+
+lpp_robust <- robust(lpp_estimate, cluster = lpp_si_data$Study_ID,
+                     adjust = TRUE)
+summary(lpp_robust)# g = -0.053, p = 0.407
+
+### LPP Risk Analysis
+lpp_estimate <- rma.mv(yi = g ~ 1,
+                       V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                       data = lpp_risk_data,
+                       method = "REML")
+
+lpp_robust <- robust(lpp_estimate, cluster = lpp_risk_data$Study_ID,
+                     adjust = TRUE)
+summary(lpp_robust)# g = -0.290, p = 0.157
+# P3
+p3_si_data <- meta_data %>%
+  filter(type == "P3" & Description == "ideation")# 53 effect sizes, 3 studies. meta analyze
+
+p3_sa_data <- meta_data %>%
+  filter(type == "P3" & Description == "attempt")# 15 effect sizes, 6 studies. Meta analyze
+
+p3_risk_data <- meta_data %>%
+  filter(type == "P3" & Description == "risk")# 28 effect sizes, 3 studies. meta analyze
+
+## Analyses
+###P3 SI Analysis
+p3_estimate <- rma.mv(yi = g ~ 1,
+                      V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                      data = p3_si_data,
+                      method = "REML")
+
+p3_robust <- robust(p3_estimate, cluster = p3_si_data$Study_ID,
+                    adjust = TRUE)
+summary(p3_robust)# g = 0.067, p = 0.827
+
+###P3 SA Analysis
+p3_estimate <- rma.mv(yi = g ~ 1,
+                      V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                      data = p3_sa_data,
+                      method = "REML")
+
+p3_robust <- robust(p3_estimate, cluster = p3_sa_data$Study_ID,
+                    adjust = TRUE)
+summary(p3_robust)# g = -0.118, p = 0.799
+
+### P3 Risk Analysis
+p3_estimate <- rma.mv(yi = g ~ 1,
+                      V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                      data = p3_risk_data,
+                      method = "REML")
+
+p3_robust <- robust(p3_estimate, cluster = p3_risk_data$Study_ID,
+                    adjust = TRUE)
+
+summary(p3_robust)# g = 0.250, p = 0.322
+
+# RewP
+rewp_si_data <- meta_data %>%
+  filter(type == "RewP" & Description == "ideation")# 12 effect sizes, 3 studies. Meta analyze
+
+rewp_sa_data <- meta_data %>%
+  filter(type == "RewP" & Description == "attempt")# 5 effect sizes, 2 studies. Meta analyze
+
+rewp_risk_data <- meta_data %>%
+  filter(type == "RewP" & Description == "risk")# 3 effect sizes, 1 study. Meta analyze
+
+## Analyses
+### RewP SI Analysis
+rewp_estimate <- rma.mv(yi = g ~ 1,
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                        data = rewp_si_data,
+                        method = "REML")
+
+rewp_robust <- robust(rewp_estimate, cluster = rewp_si_data$Study_ID,
+                      adjust = TRUE)
+
+summary(rewp_robust)# g = 0.007, p = 0.885
+
+### RewP SA Analysis
+rewp_estimate <- rma.mv(yi = g ~ 1,
+                        V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                        data = rewp_sa_data,
+                        method = "REML")
+
+rewp_robust <- robust(rewp_estimate, cluster = rewp_sa_data$Study_ID,
+                      adjust = TRUE)
+
+summary(rewp_robust)# g = -0.122, p = 0.545
+
+#CNV
+cnv_si_data <- meta_data %>%
+  filter(type == "CNV" & Description == "ideation")# 3 effect sizes, 1 study. Meta analyze
+
+cnv_sa_data <- meta_data %>%
+  filter(type == "CNV" & Description == "attempt")# 4 effect sizes, 4 studies. Meta analyze
+
+cnv_risk_data <- meta_data %>%
+  filter(type == "CNV" & Description == "risk")# no effects
+
+## Analyses
+### CNV SA Analysis
+cnv_estimate <- rma.mv(yi = g ~ 1,
+                       V = var_g, random = list(~ 1 | effect_id, ~ 1 | Study_ID),
+                       data = cnv_sa_data,
+                       method = "REML")
+
+cnv_robust <- robust(cnv_estimate, cluster = cnv_sa_data$Study_ID,
+                     adjust = TRUE)
+
+summary(cnv_robust)# g = 0.413, p = 0.416
+# N2
+n2_si_data <- meta_data %>%
+  filter(type == "N2" & Description == "ideation")# no effects
+
+n2_sa_data <- meta_data %>%
+  filter(type == "N2" & Description == "attempt")# 6 effect sizes, 1 study. Meta analyze
+
+n2_risk_data <- meta_data %>%
+  filter(type == "N2" & Description == "risk")# 2 effects, 1 study. Narrative Review
+
+# P2
+p2_si_data <- meta_data %>%
+  filter(type == "P2" & Description == "ideation")# 3 effects, 1 study. Meta analyze
+
+p2_sa_data <- meta_data %>%
+  filter(type == "P2" & Description == "attempt")# 1 effect, 1 study. Narrative Review
+
+p2_risk_data <- meta_data %>%
+  filter(type == "P2" & Description == "risk")# no studies
+
+### Supplemental Analyses
 #Subset data for overall analyses
 ideation_data <- meta_data %>% 
   filter(Description == "ideation" & abs_g < 2.9)#One outlier effect size 
@@ -646,4 +875,5 @@ ggplot(data = all_years, aes(x = Year, y = n, group = 1)) + geom_line(color = "r
       theme_classic(base_size = 20) + labs(y = "# of Studies Included") + scale_x_continuous(limits = c(1994, 2020), breaks = seq(1994,2020,1)) + scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 2)) + 
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
+ 
 
