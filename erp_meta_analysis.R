@@ -7,6 +7,7 @@ library(metaviz)
 library(metameta)
 library(ggthemes)
 library(cowplot)
+library(cocor)
 #PRISMA statement
 prisma(found = 298,
        found_other = 4,
@@ -16,7 +17,7 @@ prisma(found = 298,
        full_text = 56,
        full_text_exclusions = 29, 
        qualitative = 27, 
-       quantitative = 27)
+       quantitative = 25, height = 800, width = 400)
 
 #Import data
 data <- read_excel("meta_spreadsheet.xlsx", sheet = "effect_size_coding")
@@ -1209,14 +1210,14 @@ mean(.4, .8, .8, .8, .4, .9, .4, 1.0, .9, .8, 1.0, .9, .9, .9, .9,
 #Figure 2
 figure2 <- plot_grid(fig2a, fig2b, fig2c, fig2d, labels = c('A', 'B', 'C', 'D'))
 
-save_plot("fig2.png", figure2, ncol = 2, base_height = 12, base_width = 6, dpi = 600)
+save_plot("fig2.png", figure2, ncol = 2, base_height = 12, base_width = 6, dpi = 500)
 
 figure2
 
 #Figure 3
 figure3 <- plot_grid(fig3a, fig3b, fig3c, fig3d, labels = c('A', 'B', 'C', 'D'))
 
-save_plot("fig3.png", figure3, ncol = 2, base_height = 12, base_width = 6, dpi = 600)
+save_plot("fig3.png", figure3, ncol = 2, base_height = 12, base_width = 6, dpi = 500)
 
 figure3
 
@@ -1224,7 +1225,7 @@ figure3
 #Figure 4
 figure4 <- plot_grid(fig4a, fig4b, fig4c, labels = c('A', 'B', 'C'))
 
-save_plot("fig4.png", figure4, ncol = 2, base_height = 12, base_width = 6, dpi = 600)
+save_plot("fig4.png", figure4, ncol = 2, base_height = 12, base_width = 6, dpi = 500)
 
 figure4
 
@@ -1233,7 +1234,7 @@ figure4
 #Figure 5
 figure5 <- plot_grid(fig5a, fig5b, labels = c('A', 'B', 'C'))
 
-save_plot("fig5.png", figure5, ncol = 2, base_height = 12, base_width = 6, dpi = 600)
+save_plot("fig5.png", figure5, ncol = 2, base_height = 12, base_width = 6, dpi = 500)
 
 figure5
 
@@ -1277,9 +1278,12 @@ firepower_plot <-
 firepower_plot <- firepower_plot + theme(text = element_text(size = 20))
 
 tiff(file = "figure_6.tiff", width = 12, height = 10, units = "in", 
-     res = 800, compression = "lzw")
+     res = 300, compression = "lzw")
 firepower_plot
 dev.off()
+
+# Test interaction in Lee et al., 2014 paper
+cocor.indep.groups(-0.387, -0.012, 53, 68, test = "zou2007")
 
 
 # Supplemental Analyses ---------------------------------------------------
@@ -1889,7 +1893,7 @@ all_years <- union(summary_year, missing_years, by = "Year") %>%
 jpeg(file = "studies_time.jpg", width = 10, height = 12, units = "in", 
      res = 800)
 ggplot(data = all_years, aes(x = Year, y = n, group = 1)) + geom_line(color = "red", size = 2) + geom_point(size = 3) + 
-      theme_classic(base_size = 20) + labs(y = "# of Studies Included") + scale_x_continuous(limits = c(1994, 2020), breaks = seq(1994,2020,1)) + scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 2)) + 
+      theme_classic(base_size = 25) + labs(y = "# of Studies Included") + scale_x_continuous(limits = c(1994, 2020), breaks = seq(1994,2020,1)) + scale_y_continuous(limits = c(0, 10), breaks = seq(0, 10, 2)) + 
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
  
